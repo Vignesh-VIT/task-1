@@ -1,0 +1,31 @@
+name: $(Date:yyyyMMddhhmmss).$(SourceBranchName).$(Build.SourceVersion)
+
+trigger:
+  - main
+  - feature/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+  - job: build_and_push
+    displayName: 'Build and Push Flask App'
+    
+    steps:
+    - task: Docker@2
+      displayName: 'Build Docker Image'
+      inputs:
+        command: build
+        Dockerfile: '**/Dockerfile'
+        repository: vigneshtrail.jfrog.io/vignesh-docker/flask-app
+        tags: azure
+
+    - task: Docker@2
+      displayName: 'Login to JFrog Artifactory'
+      inputs:
+        command: login
+        containerRegistry: 'JFrogConnection'
+        
+    - script: |
+        docker push vigneshtrail.jfrog.io/vignesh-docker/flask-app:azure
+      displayName: 'Push Docker Image to JFrog'
