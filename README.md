@@ -1,1 +1,1 @@
-### Build and Push Docker image ### 
+### Build and Push Docker image to Jfrog ### 
