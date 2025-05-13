@@ -10,8 +10,7 @@ jobs:
   build-and-push:
     runs-on: 
       - self-hosted
-      - agentpool-azure
-
+      
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
