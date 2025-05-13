@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/*
+      - bug/*
 
 jobs:
   build-and-push:
