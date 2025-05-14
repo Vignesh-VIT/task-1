@@ -25,7 +25,7 @@ jobs:
       run: docker push vigneshtrail.jfrog.io/vignesh-docker/flask-app:actions
     
     - name: Send email notification
-      if: always() # Run whether the previous steps succeeded or failed
+      if: failure()
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: smtp.gmail.com
