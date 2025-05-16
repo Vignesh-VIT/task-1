@@ -24,15 +24,12 @@ jobs:
     - name: Push Docker image
       run: docker push vigneshtrail.jfrog.io/vignesh-docker/flask-app:actions
     
-    - name: Send email notification
-      if: failure()
-      uses: dawidd6/action-send-mail@v3
+    - name: Send Teams notification
+      if: always()
+      uses: aliencube/microsoft-teams-actions@v0.8.0
       with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        username: ${{ secrets.EMAIL_USERNAME }}
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: ${{ job.status == 'success' && 'Build Succeeded' || 'Build Failed' }}
-        body: Build ${{ github.job }} in workflow ${{ github.workflow }} of ${{ github.repository }} ${{ job.status }}!
-        to: winvicky1998@gmail.com
-        from: GitHub Actions
+        webhook_uri: ${{ secrets.TEAMS_WEBHOOK }}
+        title: "Build ${{ job.status }}"
+        summary: "Build ${{ github.workflow }} ${{ job.status }}"
+        text: "Repository: ${{ github.repository }}\nBranch: ${{ github.ref }}\nStatus: ${{ job.status }}"
+        theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
