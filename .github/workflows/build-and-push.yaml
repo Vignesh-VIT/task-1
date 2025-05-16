@@ -34,14 +34,31 @@ jobs:
         text: "Repository: ${{ github.repository }}\nBranch: ${{ github.ref }}\nStatus: ${{ job.status }}"
         theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
 
-    - name: Send email notification
+    - name: Send email via Microsoft Graph API
       if: always()
-      uses: atassis/ms-teams-notification@v1.0.0
+      uses: azure/ms-graph-action@v1.0.0
       with:
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-        recipient: "saravanan.vignesh@in.bosch.com"
-        subject: "Build ${{ job.status }}"
-        body: "Build ${{ github.job }} in workflow ${{ github.workflow }} of ${{ github.repository }} ${{ job.status }}!"
-        sender: "saravanan.vignesh@in.bosch.com"
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          scopes: 'https://graph.microsoft.com/.default'
+          method: 'POST'
+          uri: 'https://graph.microsoft.com/v1.0/users/${{ secrets.SENDER_EMAIL }}/sendMail'
+          body: |
+            {
+              "message": {
+                "subject": "Build ${{ job.status == 'success' && 'Succeeded ✅' || 'Failed ❌' }}",
+                "body": {
+                  "contentType": "HTML",
+                  "content": "<p>Build <b>${{ github.job }}</b> in workflow <b>${{ github.workflow }}</b> of <b>${{ github.repository }}</b> ${{ job.status }}!</p><p>Repository: ${{ github.repository }}<br>Branch: ${{ github.ref_name }}<br>Commit: ${{ github.event.head_commit.message }}<br>See details: <a href='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Build Log</a></p>"
+                },
+                "toRecipients": [
+                  {
+                    "emailAddress": {
+                      "address": "recipient@yourcompany.com"
+                    }
+                  }
+                ]
+              },
+              "saveToSentItems": "true"
+            }
