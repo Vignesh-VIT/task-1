@@ -63,7 +63,7 @@ jobs:
               "subject": "Build ${{ job.status }} '"$STATUS_EMOJI"' - ${{ github.repository }}",
               "body": {
                 "contentType": "HTML",
-                "content": "<h2>GitHub Actions Build Notification</h2><p><strong>Status:</strong> ${{ job.status }}</p><p><strong>Repository:</strong> ${{ github.repository }}</p><p><strong>Branch:</strong> ${{ github.ref_name }}</p><p><strong>Workflow:</strong> ${{ github.workflow }}</p><p><a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Logs</a></p>"
+                "content": "<h2>GitHub Actions Build Notification</h2><p><strong>status:</strong> ${{ job.status }}</p><p><strong>Repository:</strong> ${{ github.repository }}</p><p><strong>Branch:</strong> ${{ github.ref_name }}</p><p><strong>Workflow:</strong> ${{ github.workflow }}</p><p><a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Logs</a></p>"
               },
               "toRecipients": [
                 {
