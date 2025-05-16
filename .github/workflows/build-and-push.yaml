@@ -34,31 +34,43 @@ jobs:
         text: "Repository: ${{ github.repository }}\nBranch: ${{ github.ref }}\nStatus: ${{ job.status }}"
         theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
 
-    - name: Send email via Microsoft Graph API
+    - name: Send Outlook Email
       if: always()
-      uses: azure/ms-graph-action@v1.0.0
-      with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          scopes: 'https://graph.microsoft.com/.default'
-          method: 'POST'
-          uri: 'https://graph.microsoft.com/v1.0/users/${{ secrets.SENDER_EMAIL }}/sendMail'
-          body: |
-            {
-              "message": {
-                "subject": "Build ${{ job.status == 'success' && 'Succeeded ✅' || 'Failed ❌' }}",
-                "body": {
-                  "contentType": "HTML",
-                  "content": "<p>Build <b>${{ github.job }}</b> in workflow <b>${{ github.workflow }}</b> of <b>${{ github.repository }}</b> ${{ job.status }}!</p><p>Repository: ${{ github.repository }}<br>Branch: ${{ github.ref_name }}<br>Commit: ${{ github.event.head_commit.message }}<br>See details: <a href='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Build Log</a></p>"
-                },
-                "toRecipients": [
-                  {
-                    "emailAddress": {
-                      "address": "recipient@yourcompany.com"
-                    }
-                  }
-                ]
+      run: |
+          # Get token
+          TOKEN_RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/oauth2/v2.0/token" \
+          -H "Content-Type: application/x-www-form-urlencoded" \
+          -d "client_id=${{ secrets.AZURE_CLIENT_ID }}" \
+          -d "scope=https://graph.microsoft.com/.default" \
+          -d "client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
+          -d "grant_type=client_credentials")
+          
+          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+          
+          # Set status emoji
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS_EMOJI="✅"
+          else
+            STATUS_EMOJI="❌"
+          fi
+          
+          # Send email
+          curl -X POST "https://graph.microsoft.com/v1.0/users/${{ secrets.SENDER_EMAIL }}/sendMail" \
+          -H "Authorization: Bearer $ACCESS_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "message": {
+              "subject": "Build ${{ job.status }} '"$STATUS_EMOJI"' - ${{ github.repository }}",
+              "body": {
+                "contentType": "HTML",
+                "content": "<h2>GitHub Actions Build Notification</h2><p><strong>Status:</strong> ${{ job.status }}</p><p><strong>Repository:</strong> ${{ github.repository }}</p><p><strong>Branch:</strong> ${{ github.ref_name }}</p><p><strong>Workflow:</strong> ${{ github.workflow }}</p><p><a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Logs</a></p>"
               },
-              "saveToSentItems": "true"
+              "toRecipients": [
+                {
+                  "emailAddress": {
+                    "address": "${{ secrets.EMAIL_RECIPIENT }}"
+                  }
+                }
+              ]
             }
+          }'
