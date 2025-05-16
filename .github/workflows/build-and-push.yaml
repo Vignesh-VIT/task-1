@@ -6,11 +6,11 @@ on:
       - feature/*
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+        
     - name: Log in to JFrog Artifactory
       uses: docker/login-action@v3
       with:
@@ -19,63 +19,31 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
         
     - name: Build Docker image
-      run: docker build -t vigneshtrail.jfrog.io/vignesh-docker/flask-app:actions .
+      run: docker build -f Docker/Dockerfile -t vigneshtrail.jfrog.io/vignesh-docker/flask-app:actions .
       
     - name: Push Docker image
-      run: docker push vigneshtrail.jfrog.io/vignesh-docker/flask-app:actions
+      run: |
+        exit 1
+        docker push vigneshtrail.jfrog.io/vignesh-docker/flask-app:actions
     
     - name: Send Teams notification
       if: always()
-      uses: aliencube/microsoft-teams-actions@v0.8.0
-      with:
-        webhook_uri: ${{ secrets.TEAMS_WEBHOOK }}
-        title: "Build ${{ job.status }}"
-        summary: "Build ${{ github.workflow }} ${{ job.status }}"
-        text: "Repository: ${{ github.repository }}\nBranch: ${{ github.ref }}\nStatus: ${{ job.status }}"
-        theme_color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}
-
-    - name: Send Outlook Email
-      if: always()
       run: |
-          # Get token
-          TOKEN_RESPONSE=$(curl -s -X POST "https://login.microsoftonline.com/${{ secrets.AZURE_TENANT_ID }}/oauth2/v2.0/token" \
-          -H "Content-Type: application/x-www-form-urlencoded" \
-          -d "client_id=${{ secrets.AZURE_CLIENT_ID }}" \
-          -d "scope=https://graph.microsoft.com/.default" \
-          -d "client_secret=${{ secrets.AZURE_CLIENT_SECRET }}" \
-          -d "grant_type=client_credentials")
+        chmod +x ./scripts/send-teams-notification.sh
+        # Extract branch name from ref
+        if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+          BRANCH_NAME="$GITHUB_HEAD_REF"
+        else
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+        fi
           
-          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
-          
-          # Set status emoji
-          if [ "${{ job.status }}" = "success" ]; then
-            STATUS_EMOJI="✅"
-          else
-            STATUS_EMOJI="❌"
-          fi
-          
-          # Create email JSON file
-          cat > email_payload.json << EOF
-          {
-            "message": {
-              "subject": "Build ${{ job.status }} $STATUS_EMOJI - ${{ github.repository }}",
-              "body": {
-                "contentType": "HTML",
-                "content": "<h2>GitHub Actions Build Notification</h2><p><strong>Status:</strong> ${{ job.status }}</p><p><strong>Repository:</strong> ${{ github.repository }}</p><p><strong>Branch:</strong> ${{ github.ref_name }}</p><p><strong>Workflow:</strong> ${{ github.workflow }}</p><p><a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Logs</a></p>"
-              },
-              "toRecipients": [
-                {
-                  "emailAddress": {
-                    "address": "${{ secrets.EMAIL_RECIPIENT }}"
-                  }
-                }
-              ]
-            }
-          }
-          EOF
-          
-          # Send email with proper content type header
-          curl -v -X POST "https://graph.microsoft.com/v1.0/users/${{ secrets.SENDER_EMAIL }}/sendMail" \
-          -H "Authorization: Bearer $ACCESS_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d @email_payload.json
+        echo "Branch name: $BRANCH_NAME"
+
+        ./scripts/send-teams-notification.sh \
+          "${{ secrets.TEAMS_WEBHOOK }}" \
+          "${{ job.status }}" \
+          "${{ github.repository }}" \
+          "$BRANCH_NAME" \
+          "${{ github.run_id }}" \
+          "${{ github.run_number }}" \
+          "${{ github.actor }}" \
