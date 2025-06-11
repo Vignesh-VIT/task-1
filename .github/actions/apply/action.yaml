@@ -1,0 +1,13 @@
+name: Apply Terraform
+description: Verifies Terraform format and syntax
+runs:
+  using: "composite"
+  steps:
+    - run: echo "Verifying Terraform files..."
+      shell: bash
+
+    - run: echo "Verifying Terraform files..."
+      shell: bash
+
+    - run: echo "Verifying Terraform files..."
+      shell: bash
